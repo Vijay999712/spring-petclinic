@@ -1,0 +1,46 @@
+pipeline {
+    agent any
+
+    tools {
+        maven 'Maven-3'      // Make sure you configured this in Jenkins > Global Tool Config
+        jdk 'Java-17'        // Also configure this in Jenkins tools
+    }
+
+    environment {
+        SONARQUBE = 'MySonarQube'  // Name of SonarQube server in Jenkins config
+    }
+
+    stages {
+        stage('Clone') {
+            steps {
+                git url: 'https://github.com/Vijay999712/spring-petclinic.git', branch: 'main'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'mvn clean install'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv("${SONARQUBE}") {
+                    sh 'mvn sonar:sonar'
+                }
+            }
+        }
+        
+        stage("Archive Artifacts") {
+            steps {
+                archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
+            }
+        }
+    }
+
+    post {
+        always {
+            junit '**/target/surefire-reports/*.xml'
+        }
+    }
+}
